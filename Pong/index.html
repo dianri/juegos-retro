@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Pong — Arcade</title>
+<style>
+  :root { --neon:#4cc2ff; --bg:#0b0f1a; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 20%, #16203a 0%, #0b0f1a 60%);
+    font-family: 'Courier New', ui-monospace, monospace;
+    color: #e8ecf5;
+    padding: 6px;
+  }
+
+  .cabina {
+    width: 100%;
+    max-width: 864px;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding: 12px 16px 10px;
+    border: 2px solid rgba(76,194,255,.35);
+    border-radius: 14px;
+    background: #0d1220;
+    box-shadow: 0 0 40px rgba(76,194,255,.15), inset 0 0 60px rgba(0,0,0,.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h1 {
+    font-size: clamp(16px, 3.2vw, 22px);
+    letter-spacing: clamp(3px, 1vw, 6px);
+    color: var(--neon);
+    text-shadow: 0 0 12px rgba(76,194,255,.6);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .canvas-wrapper {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 800px;
+    max-height: calc(100dvh - 120px);
+    aspect-ratio: 800 / 600;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #05070d;
+    touch-action: none;
+  }
+
+  .hud {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px 12px;
+    margin-top: 8px;
+    font-size: clamp(11px, 2.2vw, 14px);
+    letter-spacing: 1px;
+  }
+
+  .hud b { color: var(--neon); }
+  .vidas { color: #ff2e63; letter-spacing: 3px; text-shadow: 0 0 8px rgba(255,46,99,.5); }
+  .record { color: #ffd23f; }
+  .powerups {
+    margin-top: 4px;
+    font-size: clamp(10px, 2vw, 12px);
+    letter-spacing: 1px;
+    color: #3ddc97;
+    min-height: 16px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .controls {
+    margin-top: 6px;
+    font-size: clamp(9px, 1.8vw, 11px);
+    color: #8b97ad;
+    text-align: center;
+    line-height: 1.3;
+    width: 100%;
+  }
+
+  button {
+    background: transparent;
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    font-family: inherit;
+    font-size: clamp(10px, 2vw, 12px);
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    touch-action: manipulation;
+  }
+
+  button:hover { background: rgba(76,194,255,.12); }
+  button.destacado {
+    border-color: #ffd23f;
+    color: #ffd23f;
+    text-shadow: 0 0 10px rgba(255,210,63,.6);
+    background: rgba(255,210,63,.10);
+  }
+
+  @media (max-height: 540px) {
+    body { padding: 2px; }
+    .cabina {
+      padding: 4px 8px;
+      border-width: 1px;
+      border-radius: 8px;
+    }
+    h1 {
+      font-size: 13px;
+      letter-spacing: 2px;
+      margin-bottom: 2px;
+    }
+    canvas {
+      max-height: calc(100dvh - 64px);
+    }
+    .hud {
+      margin-top: 2px;
+      gap: 3px 6px;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    .powerups {
+      margin-top: 1px;
+      min-height: 12px;
+      font-size: 9px;
+    }
+    .controls { display: none; }
+    button { padding: 2px 6px; font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+<div class="cabina">
+  <h1>PONG</h1>
+  <div class="canvas-wrapper">
+    <canvas id="game" width="800" height="600"></canvas>
+  </div>
+  <div class="hud">
+    <div>PUNTOS: <b id="score">0</b></div>
+    <div>RÉCORD: <b class="record" id="highscore">0</b></div>
+    <div>NIVEL MÁX: <b class="record" id="maxlevel">1</b></div>
+    <div>MARCADOR: <b id="match">0 - 0</b></div>
+    <div class="vidas" id="lives">♥♥♥</div>
+    <div>NIVEL: <b id="level">1</b></div>
+    <button id="btnRestart">REINICIAR NIVEL</button>
+  </div>
+  <div class="powerups" id="powerups"></div>
+  <div class="controls">↑ / ↓, ratón o táctil · ESPACIO / TOQUE: sacar / disparar · P o ESC: pausa · C: continuar nivel · R: reiniciar</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const elScore = document.getElementById('score');
+const elLives = document.getElementById('lives');
+const elHigh = document.getElementById('highscore');
+const elLevel = document.getElementById('level');
+const elMax = document.getElementById('maxlevel');
+const elPower = document.getElementById('powerups');
+const elMatch = document.getElementById('match');
+
+// ---------- Audio procedural ----------
+let audioCtx = null;
+function resumeAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) {}
+}
+function beep(freq, dur = 0.06, vol = 0.12, type = 'square') {
+  try {
+    resumeAudio();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* silencio si el navegador bloquea el audio */ }
+}
+function sweep(f0, f1, dur, vol = 0.15, type = 'sawtooth') {
+  try {
+    resumeAudio();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(f1, audioCtx.currentTime + dur);
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+function arpeggio() {
+  [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.14, 0.12, 'triangle'), i * 70));
+}
+function fanfare() {
+  [523, 659, 784, 1047, 1319, 1047, 784, 1047, 1319, 1568, 1047]
+    .forEach((f, i) => setTimeout(() => beep(f, 0.28, 0.14, 'triangle'), i * 130));
+}
+const PU_SOUND = {
+  multi:  () => { sweep(300, 900, 0.25); beep(1200, 0.1, 0.1, 'triangle'); },
+  wide:   () => { sweep(200, 500, 0.2, 0.15, 'triangle'); },
+  laser:  () => { sweep(800, 1400, 0.15, 0.12, 'square'); beep(1600, 0.08, 0.1, 'square'); },
+  fire:   () => { sweep(150, 600, 0.3, 0.18, 'sawtooth'); },
+};
+
+// ---------- Constantes ----------
+const COLS = 6;
+const BRICK_H = 26, GAP = 6, ROW_H = 34, TOP = 90, BOTTOM_TOP = 350, SIDE = 270;
+const BRICK_W = (W - SIDE * 2 - GAP * (COLS - 1)) / COLS;
+const COLORS = ['#ff2e63', '#ff6b35', '#ffd23f', '#3ddc97', '#4cc2ff', '#a78bfa'];
+const PU_TYPES = ['multi', 'wide', 'laser', 'fire'];
+const PU_LABEL = { multi: 'MULTIBOLA', wide: 'PALA ANCHA', laser: 'LÁSER', fire: 'BOLA DE FUEGO' };
+const PU_COLOR = { multi: '#4cc2ff', wide: '#3ddc97', laser: '#ff2e63', fire: '#ff6b35' };
+const PU_ICON = { laser: '⚡', multi: '✦', wide: '↕', fire: '🔥' };
+
+// PRNG determinista (mulberry32): un mismo nivel siempre reparte los mismos power-ups
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------- Niveles: 0=vacío, 1=estándar, 2=reforzado, 3=acero blindado ----------
+// Filas 0-3 = cluster superior · filas 4-7 = cluster inferior (deja libre el carril central)
+const LEVELS = [
+  { name: 'NIVEL 1 — RED CENTRAL', target: 3, rows: [
+    [0,1,1,1,1,0],
+    [1,0,1,1,0,1],
+    [0,1,0,0,1,0],
+    [1,0,1,1,0,1],
+    [1,0,1,1,0,1],
+    [0,1,0,0,1,0],
+    [1,0,1,1,0,1],
+    [0,1,1,1,1,0],
+  ]},
+  { name: 'NIVEL 2 — FORTALEZA', target: 4, rows: [
+    [2,1,3,3,1,2],
+    [1,2,1,1,2,1],
+    [1,1,2,2,1,1],
+    [3,1,1,1,1,3],
+    [2,1,1,1,1,2],
+    [1,2,3,3,2,1],
+    [1,1,2,2,1,1],
+    [2,1,3,3,1,2],
+  ]},
+  { name: 'NIVEL 3 — LABERINTO', target: 5, rows: [
+    [3,2,2,2,2,3],
+    [2,1,3,3,1,2],
+    [1,2,1,1,2,1],
+    [2,3,1,1,3,2],
+    [2,3,1,1,3,2],
+    [1,2,1,1,2,1],
+    [2,1,3,3,1,2],
+    [3,2,2,2,2,3],
+  ]},
+  { name: 'NIVEL 4 — ENFRENTAMIENTO FINAL', boss: true, rows: [
+    [0,2,3,3,2,0],
+    [2,1,1,1,1,2],
+    [0,1,0,0,1,0],
+    [0,1,0,0,1,0],
+    [0,1,0,0,1,0],
+    [0,1,0,0,1,0],
+    [2,1,1,1,1,2],
+    [0,2,3,3,2,0],
+  ]},
+];
+
+// ---------- Estado ----------
+let state, score, lives, levelIdx, bricks, player, ai, balls, powerups, lasers, particles, shots;
+let boss, shake, paused, playerInertia, lastPlayerY, transition, aimAngle, stun, shrink;
+let puTimers = {};
+let goals = { player: 0, cpu: 0 };
+let highScore = parseInt(localStorage.getItem('pong_high') || '0', 10);
+let maxLevel = parseInt(localStorage.getItem('pong_maxlevel') || '1', 10);
+const keys = { up: false, down: false };
+
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+function updateHud() {
+  elScore.textContent = score;
+  elHigh.textContent = highScore;
+  elMax.textContent = maxLevel;
+  elLives.textContent = '♥'.repeat(Math.max(0, lives)) + '·'.repeat(Math.max(0, 3 - lives));
+  elLevel.textContent = levelIdx + 1;
+  elMatch.textContent = LEVELS[levelIdx].boss ? 'JEFE' : goals.player + ' - ' + goals.cpu + ' (a ' + LEVELS[levelIdx].target + ')';
+  const act = Object.keys(puTimers).filter(k => puTimers[k] > 0).map(k => PU_LABEL[k]);
+  if (shrink > 0) act.push('PALA REDUCIDA');
+  if (stun > 0) act.push('ATURDIDO');
+  elPower.textContent = act.length ? 'ACTIVOS: ' + act.join(' · ') : '';
+  const btn = document.getElementById('btnRestart');
+  if (state === 'gameover') {
+    btn.textContent = 'CONTINUAR NIVEL';
+    btn.classList.add('destacado');
+  } else if (state === 'won') {
+    btn.textContent = 'JUGAR DE NUEVO';
+    btn.classList.add('destacado');
+  } else {
+    btn.textContent = 'REINICIAR NIVEL';
+    btn.classList.remove('destacado');
+  }
+}
+
+// ---------- Física calibrada ----------
+function baseSpeed() { return 4.6 + levelIdx * 0.35; }
+
+function normalizeBall(b) {
+  const sp = baseSpeed();
+  const n = Math.hypot(b.dx, b.dy) || 1;
+  b.dx = (b.dx / n) * sp;
+  b.dy = (b.dy / n) * sp;
+  b.speed = sp;
+}
+
+function newBall(x, y, dx, dy) {
+  return { x, y, r: 8, dx, dy, speed: baseSpeed(), fire: puTimers.fire > 0, noPaddle: 0 };
+}
+
+function resetServe() {
+  balls = [newBall(W / 2, H / 2, 0, 0)];
+  aimAngle = Math.random() * 0.6 - 0.3;
+  state = 'ready';
+  updateHud();
+}
+
+function loadLevel(idx) {
+  levelIdx = idx;
+  bricks = [];
+  shots = [];
+  powerups = [];
+  lasers = [];
+  puTimers = {};
+  stun = 0; shrink = 0;
+  boss = null;
+  ai = null;
+  goals = { player: 0, cpu: 0 };
+  const L = LEVELS[idx];
+  const rng = mulberry32(0x9E3779B9 ^ (idx * 2654435761));
+  const destructibles = [];
+  for (let r = 0; r < L.rows.length; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = L.rows[r][c];
+      if (!t) continue;
+      const br = {
+        x: SIDE + c * (BRICK_W + GAP),
+        y: r < 4 ? TOP + r * ROW_H : BOTTOM_TOP + (r - 4) * ROW_H,
+        w: BRICK_W, h: BRICK_H,
+        type: t, hp: t === 2 ? 2 : 1,
+        color: t === 3 ? '#8a99ad' : COLORS[r % COLORS.length],
+        points: t === 3 ? 0 : (8 - r) * 10 * (t === 2 ? 2 : 1),
+        pu: null,
+      };
+      if (t !== 3) destructibles.push(br);
+      bricks.push(br);
+    }
+  }
+  // Asignación determinista: al menos uno de cada tipo por nivel
+  const shuffled = destructibles.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  PU_TYPES.forEach((type, i) => { if (shuffled[i]) shuffled[i].pu = type; });
+  for (let i = PU_TYPES.length; i < Math.min(shuffled.length, PU_TYPES.length + 2); i++) {
+    if (rng() < 0.5) shuffled[i].pu = PU_TYPES[Math.floor(rng() * PU_TYPES.length)];
+  }
+
+  if (L.boss) {
+    boss = {
+      x: W - 80, y: 130, w: 40, h: 180,
+      hp: 26, maxHp: 26, speed: 1.7,
+      flash: 0, invuln: 0, fireT: 210, decoyT: 260,
+    };
+  } else {
+    ai = {
+      x: W - 44, y: H / 2 - 55, w: 14, h: 110,
+      speed: 3.1 + idx * 0.55, error: 46 - idx * 10, stun: 0,
+    };
+  }
+  updateHud();
+  resetServe();
+}
+
+function resetGame() {
+  score = 0; lives = 3;
+  player = { w: 14, h: 110, x: 36, y: H / 2 - 55, speed: 8, baseH: 110 };
+  lastPlayerY = player.y; playerInertia = 0;
+  particles = []; powerups = []; shots = []; lasers = [];
+  shake = 0; paused = false; transition = null;
+  scoreSubmitted = false;
+  loadLevel(0);
+}
+
+function continueLevel() {
+  lives = 3;
+  particles = []; powerups = []; shots = []; lasers = [];
+  scoreSubmitted = false;
+  loadLevel(levelIdx);
+}
+
+function winSet() {
+  saveHigh();
+  saveMaxLevel();
+  if (levelIdx < LEVELS.length - 1) {
+    state = 'transition';
+    powerups = [];
+    transition = { t: 0, next: levelIdx + 1 };
+    sweep(400, 1000, 0.4, 0.15, 'triangle');
+  } else {
+    state = 'won';
+    submitScore();
+    sweep(500, 1400, 0.5, 0.2, 'triangle');
+  }
+  updateHud();
+}
+
+function launch() {
+  if (state !== 'ready') return;
+  const b = balls[0];
+  const sp = baseSpeed();
+  b.dx = Math.cos(aimAngle) * sp;
+  b.dy = Math.sin(aimAngle) * sp;
+  normalizeBall(b);
+  state = 'playing';
+  beep(440, 0.1);
+}
+
+function addShake(n) { shake = Math.max(shake, n); }
+
+// Anti-bloqueo: garantiza componente horizontal mínima sin alterar la magnitud
+function enforceMinHorizontal(b) {
+  const sp = baseSpeed();
+  if (Math.abs(b.dx) < sp * 0.35) {
+    b.dx = b.dx >= 0 ? sp * 0.35 : -sp * 0.35;
+    const remaining = Math.sqrt(Math.max(0, sp * sp - b.dx * b.dx));
+    b.dy = b.dy >= 0 ? remaining : -remaining;
+  }
+}
+
+function spawnParticles(x, y, color, n = 14, speedMult = 1, size = 4) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = (1 + Math.random() * 3) * speedMult;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * s,
+      vy: Math.sin(a) * s - (speedMult > 1 ? 0 : 1),
+      life: 1,
+      decay: 0.012 + Math.random() * 0.015,
+      color,
+      size: size * (0.6 + Math.random() * 0.8),
+    });
+  }
+}
+
+function saveHigh() {
+  if (score > highScore) { highScore = score; localStorage.setItem('pong_high', highScore); }
+}
+function saveMaxLevel() {
+  const reached = levelIdx + 1;
+  if (reached > maxLevel) { maxLevel = reached; localStorage.setItem('pong_maxlevel', maxLevel); }
+}
+
+let scoreSubmitted = false;
+function submitScore() {
+  if (scoreSubmitted) return;
+  scoreSubmitted = true;
+  const currentScore = score || 0;
+  if (window.parent !== window) {
+    try {
+      window.parent.postMessage({
+        type: 'PONG_SCORE_SUBMISSION',
+        score: currentScore,
+        game: 'pong'
+      }, '*');
+    } catch (e) {
+      console.warn('Error al enviar la puntuación a la app contenedora:', e);
+    }
+  }
+}
+
+function applyPowerup(t) {
+  PU_SOUND[t]();
+  if (t === 'multi') {
+    const src = balls[0] || { x: W / 2, y: H / 2, dx: 1, dy: 0 };
+    const baseAng = Math.atan2(src.dy, src.dx);
+    for (let i = 0; i < 2; i++) {
+      const ang = baseAng + (i === 0 ? -0.45 : 0.45);
+      const sp = baseSpeed();
+      balls.push(newBall(src.x, src.y, Math.cos(ang) * sp, Math.sin(ang) * sp));
+    }
+  } else if (t === 'wide') {
+    puTimers.wide = 600;
+  } else if (t === 'laser') {
+    puTimers.laser = 600;
+  } else if (t === 'fire') {
+    puTimers.fire = 600;
+    balls.forEach(b => b.fire = true);
+  }
+  updateHud();
+}
+
+function fireLaser() {
+  if (state !== 'playing' || puTimers.laser <= 0) return;
+  lasers.push({ x: player.x + player.w + 4, y: player.y + 18 });
+  lasers.push({ x: player.x + player.w + 4, y: player.y + player.h - 18 });
+  sweep(1000, 300, 0.12, 0.1, 'square');
+}
+
+function hitBrick(br, b, hitSide) {
+  br.hp--;
+  score += br.points;
+  const pc = br.pu ? PU_COLOR[br.pu] : br.color;
+  spawnParticles(br.x + br.w / 2, br.y + br.h / 2, pc, br.hp > 0 ? 6 : 14);
+  if (br.hp > 0) {
+    beep(500, 0.05);
+  } else {
+    addShake(4);
+    beep(600 + br.points, 0.05);
+    if (br.pu) {
+      arpeggio();
+      powerups.push({
+        x: br.x + br.w / 2, baseY: br.y + br.h / 2, y: br.y + br.h / 2,
+        vx: -2.2, type: br.pu, phase: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+  if (!b.fire) {
+    if (hitSide === 'horizontal') b.dx = -b.dx; else b.dy = -b.dy;
+  }
+  normalizeBall(b);
+  updateHud();
+}
+
+function bossHit(hx, hy, dmg = 1) {
+  if (!boss || boss.invuln > 0 || boss.dying) return; // i-frames o muriendo
+  boss.hp -= dmg;
+  score += 75 * dmg;
+  boss.invuln = 15;
+  boss.flash = 1;
+  boss.y += (hy < boss.y + boss.h / 2 ? -6 : 6);
+  spawnParticles(hx, hy, '#ff2e63', 14, 1.2, 5);
+  addShake(6);
+  sweep(220, 90, 0.15, 0.15, 'square');
+  updateHud();
+  if (boss.hp <= 0) {
+    boss.hp = 0;
+    boss.dying = true;
+    boss.deathTimer = 110; // ~1.8 s de explosión en cadena
+    shots = [];
+    addShake(16);
+    sweep(180, 50, 0.4, 0.3, 'sawtooth');
+  }
+}
+
+// ---------- Física con sub-stepping (anti efecto túnel) ----------
+function stepBall(b) {
+  const SUB = 4;
+  for (let s = 0; s < SUB; s++) {
+    b.x += b.dx / SUB;
+    b.y += b.dy / SUB;
+
+    // Paredes superior e inferior
+    if (b.y - b.r < 0) { b.y = b.r; b.dy = Math.abs(b.dy); normalizeBall(b); beep(300, 0.04); }
+    else if (b.y + b.r > H) { b.y = H - b.r; b.dy = -Math.abs(b.dy); normalizeBall(b); beep(300, 0.04); }
+
+    // Muro de energía del jefe (nivel final): la bola nunca se escapa por la derecha
+    if (boss && b.x + b.r > W - 4) {
+      b.x = W - 4 - b.r; b.dx = -Math.abs(b.dx); normalizeBall(b); beep(360, 0.05);
+      spawnParticles(b.x, b.y, '#a78bfa', 6, 0.8, 3);
+    }
+
+    // Pala del jugador (viene de la derecha)
+    if (b.dx < 0 && b.x - b.r <= player.x + player.w && b.x + b.r >= player.x &&
+        b.y + b.r >= player.y && b.y - b.r <= player.y + player.h) {
+      const sp = baseSpeed();
+      const rel = clamp((b.y - (player.y + player.h / 2)) / (player.h / 2), -1, 1);
+      const maxAng = 60 * Math.PI / 180;
+      let ang = rel * maxAng + playerInertia * 0.15;
+      ang = clamp(ang, -maxAng, maxAng);
+      b.dx = sp * Math.cos(ang);
+      b.dy = sp * Math.sin(ang);
+      b.x = player.x + player.w + b.r;
+      normalizeBall(b);
+      beep(220, 0.05);
+      b.noPaddle = 0;
+    }
+
+    // Pala de la CPU (defiende la derecha)
+    if (ai && !boss && b.dx > 0 && b.x + b.r >= ai.x && b.x - b.r <= ai.x + ai.w &&
+        b.y + b.r >= ai.y && b.y - b.r <= ai.y + ai.h) {
+      const sp = baseSpeed();
+      const rel = clamp((b.y - (ai.y + ai.h / 2)) / (ai.h / 2), -1, 1);
+      const maxAng = 60 * Math.PI / 180;
+      let ang = rel * maxAng + (Math.random() - 0.5) * 0.18;
+      ang = clamp(ang, -maxAng, maxAng);
+      b.dx = -sp * Math.cos(ang);
+      b.dy = sp * Math.sin(ang);
+      b.x = ai.x - b.r;
+      normalizeBall(b);
+      beep(260, 0.05);
+      b.noPaddle = 0;
+    }
+
+    // Jefe final (círculo vs rectángulo)
+    if (boss && !boss.dying) {
+      const cx = Math.max(boss.x, Math.min(b.x, boss.x + boss.w));
+      const cy = Math.max(boss.y, Math.min(b.y, boss.y + boss.h));
+      const distX = b.x - cx;
+      const distY = b.y - cy;
+      if (distX * distX + distY * distY <= b.r * b.r) {
+        bossHit(cx, cy, b.fire ? 2 : 1);
+        if (Math.abs(distX) > Math.abs(distY)) {
+          b.dx = -b.dx;
+          b.x = (b.x < boss.x + boss.w / 2) ? boss.x - b.r - 0.5 : boss.x + boss.w + b.r + 0.5;
+        } else {
+          b.dy = -b.dy;
+        }
+        normalizeBall(b);
+      }
+    }
+
+    // Ladrillos (círculo vs rectángulo con detección de cara/esquina)
+    for (const br of bricks) {
+      if (br.hp <= 0) continue;
+      const cx = Math.max(br.x, Math.min(b.x, br.x + br.w));
+      const cy = Math.max(br.y, Math.min(b.y, br.y + br.h));
+      const distX = b.x - cx;
+      const distY = b.y - cy;
+      if (distX * distX + distY * distY <= b.r * b.r) {
+        let hitSide = 'vertical';
+        if (Math.abs(distX) > Math.abs(distY)) {
+          hitSide = 'horizontal';
+        } else if (Math.abs(distY) > Math.abs(distX)) {
+          hitSide = 'vertical';
+        } else {
+          hitSide = (cx === br.x || cx === br.x + br.w) ? 'horizontal' : 'vertical';
+        }
+
+        if (br.type === 3) { // acero blindado: solo rebota
+          if (hitSide === 'horizontal') b.dx = -b.dx; else b.dy = -b.dy;
+          normalizeBall(b);
+          beep(700, 0.05, 0.1, 'triangle');
+          break;
+        }
+        hitBrick(br, b, hitSide);
+        if (!b.fire) break; // la bola de fuego atraviesa
+      }
+    }
+    enforceMinHorizontal(b);
+  }
+}
+
+function update() {
+  if (paused) return;
+
+  // Partículas (siempre activas para que las explosiones terminen con naturalidad)
+  for (const p of particles) {
+    if (p.ring) {
+      p.r += p.vr;
+      p.life -= (p.decay || 0.02);
+    } else {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.08;
+      p.life -= (p.decay || 0.025);
+    }
+  }
+  particles = particles.filter(p => p.life > 0);
+
+  if (state === 'transition' || state === 'won' || state === 'gameover') return;
+
+  // Inercia vertical de la pala
+  playerInertia = (player.y - lastPlayerY) / player.speed;
+  lastPlayerY = player.y;
+
+  // Timers de power-ups
+  for (const k of Object.keys(puTimers)) {
+    if (puTimers[k] > 0) {
+      puTimers[k]--;
+      if (puTimers[k] === 0) {
+        if (k === 'fire') balls.forEach(b => b.fire = false);
+        updateHud();
+      }
+    }
+  }
+  if (stun > 0) { stun--; if (stun === 0) updateHud(); }
+  if (shrink > 0) { shrink--; if (shrink === 0) updateHud(); }
+
+  const prevH = player.h;
+  player.h = (puTimers.wide > 0 ? 170 : player.baseH) * (shrink > 0 ? 0.65 : 1);
+  if (player.h !== prevH) player.y = clamp(player.y + (prevH - player.h) / 2, 0, H - player.h);
+
+  // Movimiento del jugador (aturdido = sin control durante 1 s)
+  if (stun <= 0) {
+    if (keys.up) player.y -= player.speed;
+    if (keys.down) player.y += player.speed;
+  }
+  player.y = clamp(player.y, 0, H - player.h);
+
+  // IA: sigue la bola entrante con velocidad y error según nivel
+  if (ai) {
+    if (ai.stun > 0) {
+      ai.stun--;
+    } else {
+      let target = ai.y + ai.h / 2;
+      let best = null;
+      for (const b of balls) if (b.dx > 0 && (!best || b.x > best.x)) best = b;
+      if (best) target = best.y + Math.sin(Date.now() / 700) * ai.error;
+      const cy = ai.y + ai.h / 2;
+      const diff = target - cy;
+      if (Math.abs(diff) > 4) ai.y += Math.sign(diff) * ai.speed;
+      ai.y = clamp(ai.y, 0, H - ai.h);
+    }
+  }
+
+  // Saque en espera: la bola flota en el centro hasta el lanzamiento
+  if (state === 'ready') {
+    const b = balls[0];
+    if (b) { b.x = W / 2; b.y = H / 2; b.dx = 0; b.dy = 0; }
+    return;
+  }
+  if (state !== 'playing') return;
+
+  // Jefe: muerte, movimiento, proyectiles y señuelos
+  if (boss) {
+    if (boss.dying) {
+      boss.deathTimer--;
+      addShake(Math.min(20, 8 + (110 - boss.deathTimer) * 0.12));
+
+      if (boss.deathTimer % 5 === 0 && boss.deathTimer > 15) {
+        const rx = boss.x + Math.random() * boss.w;
+        const ry = boss.y + Math.random() * boss.h;
+        const cols = ['#ffd23f', '#ff6b35', '#ff2e63', '#4cc2ff', '#ffffff'];
+        const c = cols[Math.floor(Math.random() * cols.length)];
+        spawnParticles(rx, ry, c, 18, 1.8, 6);
+        sweep(320 + Math.random() * 200, 80, 0.12, 0.18, 'sawtooth');
+      }
+
+      if (boss.deathTimer === 15) {
+        const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2;
+        particles.push({ ring: true, x: cx, y: cy, r: 8, vr: 6, lineWidth: 4, life: 1, decay: 0.02, color: '#4cc2ff' });
+        particles.push({ ring: true, x: cx, y: cy, r: 5, vr: 4, lineWidth: 3, life: 1, decay: 0.015, color: '#ffd23f' });
+        ['#ffd23f', '#ff6b35', '#ff2e63', '#4cc2ff', '#ffffff'].forEach(col => {
+          spawnParticles(cx, cy, col, 35, 2.8, 7);
+        });
+        addShake(24);
+        sweep(140, 30, 0.7, 0.4, 'sawtooth');
+        fanfare();
+      }
+
+      if (boss.deathTimer <= 0) {
+        saveHigh();
+        saveMaxLevel();
+        boss = null;
+        state = 'won';
+        submitScore();
+        updateHud();
+        return;
+      }
+    } else {
+      let target = H / 2;
+      let best = null;
+      for (const b of balls) if (b.dx > 0 && (!best || b.x > best.x)) best = b;
+      if (best) target = best.y;
+      const cy = boss.y + boss.h / 2;
+      boss.y += clamp((target - cy) * 0.06, -boss.speed, boss.speed);
+      boss.y += Math.sin(Date.now() / 900) * 0.6;
+      boss.y = clamp(boss.y, 90, H - boss.h - 60);
+      if (boss.flash > 0) boss.flash -= 0.05;
+      if (boss.invuln > 0) boss.invuln--;
+
+      // Disparo dirigido a la pala
+      if (--boss.fireT <= 0) {
+        boss.fireT = 210 + Math.floor(Math.random() * 60);
+        const sy = boss.y + 20 + Math.random() * (boss.h - 40);
+        const targetY = player.y + player.h / 2;
+        shots.push({ x: boss.x - 6, y: sy, vx: -3.4, vy: clamp((targetY - sy) / 160, -1.4, 1.4) });
+        sweep(700, 200, 0.2, 0.12, 'square');
+      }
+      // Señuelos con menos del 50% de vida
+      if (boss.hp < boss.maxHp / 2 && --boss.decoyT <= 0 &&
+          bricks.filter(b => b.decoy).length < 4) {
+        boss.decoyT = 300;
+        bricks.push({
+          x: boss.x - 70 - Math.random() * 50,
+          y: boss.y + 20 + Math.random() * (boss.h - 60),
+          w: 34, h: 18, type: 1, hp: 1,
+          color: '#a78bfa', points: 10, pu: null, decoy: true,
+        });
+        beep(350, 0.08, 0.1, 'triangle');
+      }
+    }
+  }
+
+  balls.forEach(stepBall);
+  if (state !== 'playing') return;
+
+  // Anti-bloqueo: 12 s sin tocar la pala -> corrector de ángulo
+  for (const b of balls) {
+    b.noPaddle++;
+    if (b.noPaddle > 720) {
+      b.noPaddle = 0;
+      const sp = baseSpeed();
+      b.dx = b.dx >= 0 ? sp * 0.5 : -sp * 0.5;
+      const remaining = Math.sqrt(Math.max(0, sp * sp - b.dx * b.dx));
+      b.dy = b.dy >= 0 ? remaining : -remaining;
+      normalizeBall(b);
+      spawnParticles(b.x, b.y, '#4cc2ff', 8);
+      sweep(900, 1400, 0.15, 0.1, 'square');
+    }
+  }
+
+  // Salidas de bola: derecha = punto para ti, izquierda = punto para la CPU
+  let scoredRight = 0, lostLeft = 0;
+  for (const b of balls) {
+    if (b.x - b.r > W) { b.dead = true; scoredRight++; }
+    else if (b.x + b.r < 0) { b.dead = true; lostLeft++; }
+  }
+  if (scoredRight) {
+    score += 100 * scoredRight;
+    goals.player += scoredRight;
+    addShake(4);
+    sweep(600, 1200, 0.2, 0.14, 'triangle');
+    updateHud();
+  }
+  balls = balls.filter(b => !b.dead);
+
+  // ¿Set ganado?
+  if (!boss && state === 'playing' && goals.player >= LEVELS[levelIdx].target) {
+    winSet();
+    return;
+  }
+
+  if (!balls.length) {
+    if (lostLeft > 0) {
+      goals.cpu += lostLeft;
+      addShake(10);
+      beep(120, 0.4, 0.2);
+      updateHud();
+      if (boss) {
+        // En el nivel del jefe cada fallo cuesta una vida
+        lives--;
+        puTimers = {}; lasers = []; stun = 0; shrink = 0;
+        player.h = player.baseH;
+        if (lives <= 0) {
+          state = 'gameover';
+          saveHigh(); saveMaxLevel();
+          submitScore();
+          updateHud();
+          return;
+        }
+      } else if (goals.cpu >= LEVELS[levelIdx].target) {
+        // Set perdido: cuesta una vida y se reinicia el marcador
+        lives--;
+        goals = { player: 0, cpu: 0 };
+        puTimers = {}; lasers = []; stun = 0; shrink = 0;
+        player.h = player.baseH;
+        addShake(12);
+        sweep(400, 80, 0.6, 0.25, 'sawtooth');
+        updateHud();
+        if (lives <= 0) {
+          state = 'gameover';
+          saveHigh(); saveMaxLevel();
+          submitScore();
+          updateHud();
+          return;
+        }
+      }
+    }
+    resetServe();
+    return;
+  }
+
+  // Power-ups: cápsulas que planean hacia la pala
+  for (const p of powerups) {
+    p.x += p.vx;
+    p.y = p.baseY + Math.sin(Date.now() / 300 + p.phase) * 18;
+    if (p.x - 21 <= player.x + player.w && p.x + 21 >= player.x &&
+        p.y + 11 >= player.y && p.y - 11 <= player.y + player.h) {
+      applyPowerup(p.type);
+      p.dead = true;
+    }
+    if (p.x < -30) p.dead = true;
+  }
+  powerups = powerups.filter(p => !p.dead);
+
+  // Láseres del jugador
+  for (const l of lasers) {
+    l.x += 9;
+    let hit = false;
+    if (boss && !boss.dying && l.x >= boss.x && l.x <= boss.x + boss.w &&
+        l.y >= boss.y && l.y <= boss.y + boss.h) {
+      bossHit(l.x, l.y, 1);
+      hit = true;
+    }
+    if (!hit && ai && !boss && l.x >= ai.x && l.x <= ai.x + ai.w &&
+        l.y >= ai.y && l.y <= ai.y + ai.h) {
+      ai.stun = 120;
+      spawnParticles(l.x, l.y, '#ff2e63', 10);
+      hit = true;
+    }
+    if (!hit) {
+      for (const br of bricks) {
+        if (br.hp <= 0 || br.type === 3) continue;
+        if (l.x >= br.x && l.x <= br.x + br.w && l.y >= br.y && l.y <= br.y + br.h) {
+          hitBrick(br, { fire: true, dx: 0, dy: 0 }, 'vertical');
+          hit = true;
+          break;
+        }
+      }
+    }
+    if (hit || l.x > W) l.dead = true;
+  }
+  lasers = lasers.filter(l => !l.dead);
+
+  // Proyectiles del jefe
+  for (const s of shots) {
+    s.x += s.vx; s.y += s.vy;
+    if (s.x <= player.x + player.w + 6 && s.x >= player.x - 6 &&
+        s.y >= player.y - 6 && s.y <= player.y + player.h + 6) {
+      stun = 60; shrink = 180; s.dead = true;
+      spawnParticles(s.x, s.y, '#ff2e63', 10);
+      sweep(600, 150, 0.2, 0.14, 'square');
+      updateHud();
+    }
+    if (s.x < -12) s.dead = true;
+  }
+  shots = shots.filter(s => !s.dead);
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw() {
+  // En pantallas estáticas el shake se anula para evitar vibración infinita
+  if (state === 'gameover' || state === 'won' || state === 'transition' || paused) shake = 0;
+
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+  ctx.fillStyle = '#05070d';
+  ctx.fillRect(-20, -20, W + 40, H + 40);
+
+  // Rejilla de fondo
+  ctx.strokeStyle = 'rgba(76,194,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+
+  // Línea central y círculo (identidad Pong)
+  ctx.save();
+  ctx.setLineDash([12, 14]);
+  ctx.strokeStyle = 'rgba(76,194,255,0.18)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(76,194,255,0.10)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(W / 2, H / 2, 78, 0, Math.PI * 2); ctx.stroke();
+
+  // Marcador
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 26px "Courier New", monospace';
+  ctx.fillStyle = '#4cc2ff';
+  ctx.fillText('TÚ ' + goals.player, W / 2 - 18, 52);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ff2e63';
+  ctx.fillText(goals.cpu + ' CPU', W / 2 + 18, 52);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#6b7891';
+  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.fillText('—', W / 2, 51);
+
+  // Nombre del nivel
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 11px "Courier New", monospace';
+  ctx.fillStyle = 'rgba(139,151,173,0.85)';
+  ctx.fillText(LEVELS[levelIdx].name, 28, 26);
+
+  // Objetivo del set
+  if (!LEVELS[levelIdx].boss) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 10px "Courier New", monospace';
+    ctx.fillStyle = 'rgba(139,151,173,0.9)';
+    ctx.fillText('PRIMERO A ' + LEVELS[levelIdx].target + ' PUNTOS', W / 2, 74);
+  }
+
+  // Barra de vida del jefe
+  if (boss && !boss.dying) {
+    const ratio = boss.hp / boss.maxHp;
+    const bw = 340, bx = W / 2 - bw / 2, by = 68;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    roundRect(bx, by, bw, 8, 4); ctx.fill();
+    ctx.save();
+    ctx.shadowColor = '#ff2e63';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = ratio > 0.5 ? '#a78bfa' : '#ff2e63';
+    roundRect(bx, by, Math.max(0, bw * ratio), 8, 4); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#e8ecf5';
+    ctx.font = 'bold 10px "Courier New", monospace';
+    ctx.fillText('DOH — NÚCLEO ARCADE · ' + boss.hp + '/' + boss.maxHp, W / 2, by + 22);
+  }
+
+  // Ladrillos
+  for (const br of bricks) {
+    if (br.hp <= 0) continue;
+    if (br.type === 3) {
+      // Acero blindado: gradiente metálico, marco, placa y remaches
+      ctx.save();
+      ctx.shadowColor = 'rgba(140,170,205,0.45)';
+      ctx.shadowBlur = 10;
+      const g = ctx.createLinearGradient(br.x, br.y, br.x, br.y + br.h);
+      g.addColorStop(0, '#a9b8cc');
+      g.addColorStop(0.55, '#8a99ad');
+      g.addColorStop(1, '#6d7c91');
+      ctx.fillStyle = g;
+      roundRect(br.x, br.y, br.w, br.h, 5);
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = '#485465';
+      ctx.lineWidth = 2;
+      roundRect(br.x + 1, br.y + 1, br.w - 2, br.h - 2, 4);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(190,215,245,0.28)';
+      roundRect(br.x + 4, br.y + 4, br.w - 8, 3, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(160,190,225,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(br.x + 4, br.y + br.h * 0.58);
+      ctx.lineTo(br.x + br.w - 4, br.y + br.h * 0.58);
+      ctx.stroke();
+      ctx.fillStyle = '#485465';
+      for (const [rx, ry] of [[br.x + 5, br.y + 5], [br.x + br.w - 5, br.y + 5],
+                              [br.x + 5, br.y + br.h - 5], [br.x + br.w - 5, br.y + br.h - 5]]) {
+        ctx.beginPath(); ctx.arc(rx, ry, 1.8, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      // Bloques neón
+      ctx.save();
+      ctx.shadowColor = br.color;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = br.color;
+      roundRect(br.x, br.y, br.w, br.h, 5);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      roundRect(br.x + 3, br.y + 3, br.w - 6, 4, 2);
+      ctx.fill();
+    }
+    if (br.type === 2 && br.hp === 1) { // grietas en reforzados dañados
+      ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(br.x + br.w * 0.3, br.y + 4);
+      ctx.lineTo(br.x + br.w * 0.5, br.y + br.h * 0.5);
+      ctx.lineTo(br.x + br.w * 0.7, br.y + br.h - 4);
+      ctx.moveTo(br.x + br.w * 0.5, br.y + br.h * 0.5);
+      ctx.lineTo(br.x + br.w * 0.35, br.y + br.h - 5);
+      ctx.stroke();
+    }
+    if (br.pu) {
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 250);
+      ctx.save();
+      ctx.shadowColor = PU_COLOR[br.pu];
+      ctx.shadowBlur = 6 + pulse * 8;
+      ctx.globalAlpha = 0.55 + pulse * 0.45;
+      ctx.fillStyle = PU_COLOR[br.pu];
+      ctx.beginPath();
+      ctx.arc(br.x + br.w / 2, br.y + br.h / 2, 4 + pulse * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#05070d';
+      ctx.font = 'bold 12px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(PU_ICON[br.pu], br.x + br.w / 2, br.y + br.h / 2 + 4);
+    }
+  }
+
+  // Jefe final
+  if (boss) {
+    const cx = boss.x + boss.w / 2, cy = boss.y + boss.h / 2;
+    if (boss.dying) {
+      if (boss.deathTimer > 15) {
+        ctx.save();
+        ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+        const flash = Math.random() < 0.55;
+        ctx.fillStyle = flash ? '#ffffff' : (Math.random() < 0.5 ? '#ff2e63' : '#ffd23f');
+        ctx.shadowColor = '#ffd23f';
+        ctx.shadowBlur = 24;
+        roundRect(boss.x, boss.y, boss.w, boss.h, 12);
+        ctx.fill();
+        ctx.restore();
+      }
+    } else {
+      const ratio = boss.hp / boss.maxHp;
+      const base = ratio > 0.5 ? '#a78bfa' : '#ff2e63';
+      ctx.save();
+      ctx.shadowColor = base;
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = (boss.invuln > 0 || boss.flash > 0) ? '#ffffff' : base;
+      roundRect(boss.x, boss.y, boss.w, boss.h, 12);
+      ctx.fill();
+      ctx.restore();
+      // Núcleo y sensores
+      ctx.fillStyle = 'rgba(5,7,13,0.7)';
+      ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.shadowColor = '#4cc2ff';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = (boss.invuln > 0 || boss.flash > 0) ? '#ffffff' : '#4cc2ff';
+      ctx.beginPath(); ctx.arc(cx, cy, 5 + Math.sin(Date.now() / 180) * 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = (boss.invuln > 0 || boss.flash > 0) ? '#ffffff' : '#ff2e63';
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(boss.x + 8, boss.y + 20 + i * 42, boss.w - 16, 6);
+      }
+    }
+  }
+
+  // Proyectiles del jefe
+  ctx.save();
+  ctx.shadowColor = '#ff2e63';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = '#ff2e63';
+  for (const s of shots) {
+    ctx.beginPath(); ctx.arc(s.x, s.y, 5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // Partículas y ondas expansivas
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    if (p.ring) {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = p.lineWidth || 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = p.color;
+      const sz = p.size || 4;
+      ctx.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Power-ups (cápsulas 42x22)
+  for (const p of powerups) {
+    ctx.save();
+    ctx.shadowColor = PU_COLOR[p.type];
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = PU_COLOR[p.type];
+    roundRect(p.x - 21, p.y - 11, 42, 22, 10);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#05070d';
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(PU_ICON[p.type], p.x, p.y + 4);
+  }
+
+  // Láseres
+  ctx.save();
+  ctx.shadowColor = '#ff2e63';
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = '#ff2e63';
+  for (const l of lasers) {
+    ctx.fillRect(l.x, l.y - 2, 16, 4);
+  }
+  ctx.restore();
+
+  // Palas
+  ctx.save();
+  ctx.shadowColor = puTimers.laser > 0 ? '#ff2e63' : (stun > 0 ? '#ffd23f' : '#4cc2ff');
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = puTimers.laser > 0 ? '#ff2e63' : (stun > 0 ? '#ffd23f' : '#4cc2ff');
+  roundRect(player.x, player.y, player.w, player.h, 7);
+  ctx.fill();
+  ctx.restore();
+  // Brillo superior de la pala
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  roundRect(player.x + 3, player.y + 4, player.w - 6, 10, 4);
+  ctx.fill();
+
+  if (ai) {
+    ctx.save();
+    ctx.shadowColor = ai.stun > 0 ? '#ffd23f' : '#ff2e63';
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = ai.stun > 0 ? '#ffd23f' : '#ff2e63';
+    roundRect(ai.x, ai.y, ai.w, ai.h, 7);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    roundRect(ai.x + 3, ai.y + 4, ai.w - 6, 10, 4);
+    ctx.fill();
+    if (ai.stun > 0) {
+      ctx.fillStyle = '#ffd23f';
+      ctx.font = 'bold 10px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('OFF', ai.x + ai.w / 2, ai.y - 8);
+    }
+  }
+
+  // Contadores de power-ups activos (barras verticales junto a la pala)
+  const activePU = ['laser', 'wide', 'fire'].filter(k => puTimers[k] > 0);
+  activePU.forEach((k, i) => {
+    const r = puTimers[k] / 600;
+    const bx = player.x + player.w + 8 + i * 12;
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    roundRect(bx, player.y, 5, player.h, 2); ctx.fill();
+    ctx.save();
+    ctx.shadowColor = PU_COLOR[k];
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = PU_COLOR[k];
+    roundRect(bx, player.y + player.h * (1 - r), 5, player.h * r, 2); ctx.fill();
+    ctx.restore();
+  });
+
+  // Mira guía antes del saque
+  if (state === 'ready') {
+    ctx.save();
+    ctx.setLineDash([6, 6]);
+    ctx.strokeStyle = 'rgba(76,194,255,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2, H / 2);
+    ctx.lineTo(W / 2 + Math.cos(aimAngle) * 70, H / 2 + Math.sin(aimAngle) * 70);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Bolas con estela
+  for (const b of balls) {
+    const sp = Math.hypot(b.dx, b.dy);
+    if (sp > 0.1) {
+      const trail = Math.min(10, Math.floor(sp * 1.2));
+      for (let i = 1; i <= trail; i++) {
+        ctx.globalAlpha = (1 - i / trail) * 0.35;
+        ctx.fillStyle = b.fire ? '#ff6b35' : '#f5f8ff';
+        ctx.beginPath();
+        ctx.arc(b.x - (b.dx / sp) * i * 3, b.y - (b.dy / sp) * i * 3,
+                b.r * (1 - i / (trail + 2)), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.save();
+    ctx.shadowColor = b.fire ? '#ff6b35' : '#ffffff';
+    ctx.shadowBlur = b.fire ? 18 : 12;
+    ctx.fillStyle = b.fire ? '#ff6b35' : '#f5f8ff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Textos de estado
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 30px "Courier New", monospace';
+  ctx.fillStyle = '#e8ecf5';
+  if (state === 'ready') {
+    ctx.fillText('PULSA ESPACIO O TOCA PARA SACAR', W / 2, H / 2 + 96);
+  } else if (state === 'gameover') {
+    ctx.fillStyle = '#ff2e63';
+    ctx.fillText('GAME OVER', W / 2, H / 2 + 30);
+    ctx.font = '15px "Courier New", monospace';
+    ctx.fillStyle = '#8b97ad';
+    ctx.fillText('C o TOCA: continuar en el Nivel ' + (levelIdx + 1) + ' (conserva puntos)', W / 2, H / 2 + 58);
+    ctx.fillText('R o BOTÓN: reiniciar desde el Nivel 1', W / 2, H / 2 + 78);
+    if (window.parent !== window || scoreSubmitted) {
+      ctx.font = 'bold 13px "Courier New", monospace';
+      ctx.fillStyle = '#3ddc97';
+      ctx.fillText('¡Puntuación (' + score + ') enviada a la app contenedora!', W / 2, H / 2 + 104);
+    }
+  } else if (state === 'won') {
+    ctx.fillStyle = '#3ddc97';
+    ctx.fillText('¡VICTORIA ABSOLUTA!', W / 2, H / 2 + 30);
+    ctx.font = '15px "Courier New", monospace';
+    ctx.fillStyle = '#8b97ad';
+    ctx.fillText('Pulsa R, TOCA o el botón para reiniciar', W / 2, H / 2 + 58);
+    if (window.parent !== window || scoreSubmitted) {
+      ctx.font = 'bold 13px "Courier New", monospace';
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillText('¡Puntuación final (' + score + ') enviada a la app contenedora!', W / 2, H / 2 + 84);
+    }
+  } else if (state === 'transition') {
+    const t = Math.min(1, transition.t / 90);
+    ctx.globalAlpha = t;
+    ctx.fillStyle = '#4cc2ff';
+    ctx.fillText(LEVELS[transition.next].name, W / 2, H / 2 + 40);
+    ctx.globalAlpha = 1;
+  } else if (paused) {
+    ctx.fillStyle = '#ffd23f';
+    ctx.fillText('PAUSA', W / 2, H / 2 + 40);
+    ctx.font = '16px "Courier New", monospace';
+    ctx.fillStyle = '#8b97ad';
+    ctx.fillText('P o ESC para continuar', W / 2, H / 2 + 70);
+  }
+
+  ctx.restore();
+}
+
+// ---------- Bucle con paso de tiempo fijo (60 Hz) ----------
+let lastTime = 0;
+let accumulator = 0;
+const FIXED_STEP = 1000 / 60;
+
+function loop(currentTime) {
+  if (!lastTime) lastTime = currentTime || performance.now();
+  const now = currentTime || performance.now();
+  let dt = now - lastTime;
+  if (dt > 100) dt = 100; // evita acumulación si se minimiza la pestaña
+  lastTime = now;
+  accumulator += dt;
+
+  while (accumulator >= FIXED_STEP) {
+    update();
+    if (state === 'transition') {
+      transition.t++;
+      if (transition.t > 120) {
+        const nx = transition.next;
+        transition = null;
+        loadLevel(nx);
+      }
+    }
+    shake *= 0.85;
+    if (shake < 0.3) shake = 0;
+    accumulator -= FIXED_STEP;
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ---------- Entrada ----------
+window.addEventListener('keydown', (e) => {
+  resumeAudio();
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { keys.up = true; e.preventDefault(); }
+  else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { keys.down = true; e.preventDefault(); }
+  else if (e.code === 'Space') {
+    if (state === 'ready') launch();
+    else if (state === 'playing' && puTimers.laser > 0) fireLaser();
+    e.preventDefault();
+  }
+  else if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+    if (state === 'playing') paused = !paused;
+  }
+  else if (e.key === 'c' || e.key === 'C') {
+    if (state === 'gameover') { paused = false; continueLevel(); }
+  }
+  else if (e.key === 'r' || e.key === 'R') { paused = false; resetGame(); }
+});
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.height) return;
+  const y = (e.clientY - rect.top) * (H / rect.height);
+  player.y = clamp(y - player.h / 2, 0, H - player.h);
+});
+
+canvas.addEventListener('click', () => {
+  resumeAudio();
+  if (state === 'ready') launch();
+  else if (state === 'playing' && puTimers.laser > 0) fireLaser();
+  else if (state === 'gameover') { paused = false; continueLevel(); }
+  else if (state === 'won') { paused = false; resetGame(); }
+});
+
+// Soporte táctil (móviles y tablets)
+let isTouching = false;
+
+function handleTouch(e) {
+  e.preventDefault();
+  resumeAudio();
+  const touches = e.targetTouches && e.targetTouches.length ? e.targetTouches : e.touches;
+  if (!touches || !touches.length) return;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.height) return;
+  const y = (touches[0].clientY - rect.top) * (H / rect.height);
+  player.y = clamp(y - player.h / 2, 0, H - player.h);
+}
+
+canvas.addEventListener('touchstart', (e) => {
+  isTouching = true;
+  handleTouch(e);
+  if (state === 'ready') launch();
+  else if (state === 'playing' && puTimers.laser > 0) fireLaser();
+  else if (state === 'gameover') { paused = false; continueLevel(); }
+  else if (state === 'won') { paused = false; resetGame(); }
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+  if (isTouching) handleTouch(e);
+}, { passive: false });
+
+window.addEventListener('touchend', (e) => {
+  if (isTouching && (!e.touches || e.touches.length === 0)) isTouching = false;
+});
+window.addEventListener('touchcancel', () => { isTouching = false; });
+
+document.getElementById('btnRestart').addEventListener('click', () => {
+  resumeAudio();
+  paused = false;
+  if (state === 'won') resetGame();
+  else continueLevel();
+});
+
+resetGame();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
