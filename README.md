@@ -2,6 +2,12 @@
 
 Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CSS3 y JavaScript puro** (Canvas 2D), sin dependencias externas ni frameworks.
 
+## 🌐 Demo en GitHub Pages
+
+**▶️ [Abrir la colección en GitHub Pages](https://dianri.github.io/juegos-retro/)**
+
+La portada principal ([`index.html`](index.html)) reúne todos los juegos y enlaza directamente con cada uno. GitHub Pages publica la rama `main` desde la raíz del repositorio.
+
 ## 🎮 Juegos
 
 | Juego | Carpeta | Estado |
@@ -17,6 +23,7 @@ Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CS
 
 ```
 juegos-retro/
+├── index.html         # Portada de la colección para GitHub Pages
 ├── Arkanoid/          # Juego completo (HTML5 + Canvas 2D)
 ├── Asteroids/         # Juego completo (HTML5 + Canvas 2D)
 ├── Pac-Man/           # Juego completo (HTML5 + Canvas 2D)
