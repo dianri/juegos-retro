@@ -6,7 +6,7 @@ Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CS
 
 | Juego | Carpeta | Estado |
 |---|---|---|
-| Arkanoid | [`Arkanoid_Game`](https://github.com/dianri/Arkanoid_Game) | ✅ Disponible (repo propio) |
+| Arkanoid | [`Arkanoid/`](Arkanoid/) | ✅ Disponible |
 | Asteroids | [`Asteroids/`](Asteroids/) | 🚧 En preparación |
 | Pac-Man | [`Pac-Man/`](Pac-Man/) | 🚧 En preparación |
 | Pong | [`Pong/`](Pong/) | 🚧 En preparación |
@@ -17,7 +17,7 @@ Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CS
 
 ```
 juegos-retro/
-├── Arkanoid_Game/     # (repo independiente, clonado en local)
+├── Arkanoid/          # Juego completo (HTML5 + Canvas 2D)
 ├── Asteroids/
 ├── Pac-Man/
 ├── Pong/
