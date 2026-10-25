@@ -7,8 +7,8 @@ Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CS
 | Juego | Carpeta | Estado |
 |---|---|---|
 | Arkanoid | [`Arkanoid/`](Arkanoid/) | ✅ Disponible |
-| Asteroids | [`Asteroids/`](Asteroids/) | 🚧 En preparación |
-| Pac-Man | [`Pac-Man/`](Pac-Man/) | 🚧 En preparación |
+| Asteroids | [`Asteroids/`](Asteroids/) | ✅ Disponible |
+| Pac-Man | [`Pac-Man/`](Pac-Man/) | ✅ Disponible |
 | Pong | [`Pong/`](Pong/) | ✅ Disponible |
 | Puzzle Bobble | [`Puzzle-bobble/`](Puzzle-bobble/) | ✅ Disponible |
 | Space Invaders | [`Space-Invaders/`](Space-Invaders/) | ✅ Disponible |
@@ -18,8 +18,8 @@ Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CS
 ```
 juegos-retro/
 ├── Arkanoid/          # Juego completo (HTML5 + Canvas 2D)
-├── Asteroids/
-├── Pac-Man/
+├── Asteroids/         # Juego completo (HTML5 + Canvas 2D)
+├── Pac-Man/           # Juego completo (HTML5 + Canvas 2D)
 ├── Pong/              # Juego completo (HTML5 + Canvas 2D)
 ├── Puzzle-bobble/     # Juego completo (HTML5 + Canvas 2D)
 └── Space-Invaders/    # Juego completo (HTML5 + Canvas 2D)
