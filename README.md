@@ -10,7 +10,7 @@ Colección de juegos arcade clásicos reimplementados desde cero con **HTML5, CS
 | Asteroids | [`Asteroids/`](Asteroids/) | 🚧 En preparación |
 | Pac-Man | [`Pac-Man/`](Pac-Man/) | 🚧 En preparación |
 | Pong | [`Pong/`](Pong/) | ✅ Disponible |
-| Puzzle Bobble | [`Puzzle-bobble/`](Puzzle-bobble/) | 🚧 En preparación |
+| Puzzle Bobble | [`Puzzle-bobble/`](Puzzle-bobble/) | ✅ Disponible |
 | Space Invaders | [`Space-Invaders/`](Space-Invaders/) | ✅ Disponible |
 
 ## 📁 Estructura
@@ -21,8 +21,8 @@ juegos-retro/
 ├── Asteroids/
 ├── Pac-Man/
 ├── Pong/              # Juego completo (HTML5 + Canvas 2D)
-├── Puzzle-bobble/
-└── Space-Invaders/     # Juego completo (HTML5 + Canvas 2D)
+├── Puzzle-bobble/     # Juego completo (HTML5 + Canvas 2D)
+└── Space-Invaders/    # Juego completo (HTML5 + Canvas 2D)
 ```
 
 Cada juego es autónomo: se ejecuta abriendo su `index.html` en cualquier navegador moderno, sin instalación ni servidor.
